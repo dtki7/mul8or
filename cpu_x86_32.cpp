@@ -83,8 +83,56 @@ bool cpu_x86_32::execute() {
   return true;
 }
 
-bool cpu_x86_32::save() {
-  // TODO
+bool cpu_x86_32::dump() {
+  string path = "data/" + get_instr();
+
+  struct stat buf;
+  if (stat(path.c_str(), &buf) != -1)
+  {
+    cout << "Data alread exist!" << endl;
+    return false;
+  }
+
+  ofstream file(path, ios::out);
+  if(!file.is_open()) {
+    cerr << "ERROR: Failed to create file data/" << path << "!" << endl;
+    return false;
+  }
+  for(register_x86 reg: regs) {
+    reg.dump(file);
+  }
+  for(map<uint32_t, uint8_t> mp: ram) {
+    file << "##" << endl;
+    for(pair<uint32_t, uint8_t> par: mp) {
+      file << par.first << ":" << par.second << endl;
+    }
+  }
+  return true;
+}
+
+bool cpu_x86_32::load(uint8_t* instr, int len) {
+  this->instr = instr;
+  this->len = len;
+
+  string path = "data/" + get_instr();
+  struct stat buf;
+  if (stat(path.c_str(), &buf) == -1)
+  {
+    if(log) {
+      cout << "Data " << path << " does not exist!" << endl;
+    }
+    return false;
+  }
+
+  string line;
+  ifstream file(path, ios::in);
+  while(getline(file, line, ':')) {
+    if(line == "#") {
+      register_x86 reg;
+      regs.push_back(reg);
+      regs.back().load(file);
+    }
+  }
   return true;
 }
 
@@ -242,4 +290,12 @@ void cpu_x86_32::diff_ram() {
       cout << ss.str() << endl;
     }
   }
+}
+
+string cpu_x86_32::get_instr() {
+  stringstream ss;
+  for(int i = 0; i < len; i++) {
+    ss << boost::format("%02x") % (uint32_t)instr[i];
+  }
+  return ss.str();
 }

@@ -26,3 +26,10 @@
 *.exe
 *.out
 *.app
+emulate_file
+collect_data
+execute
+template
+
+# Data folder
+data/

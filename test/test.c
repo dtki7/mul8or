@@ -1,22 +1,9 @@
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/init.h>
+#include <stdio.h>
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Lakshmanan");
-MODULE_DESCRIPTION("A Simple Hello World module");
-
-static int __init hello_init(void)
-{
-  asm volatile("mov $0x12345679, %%eax" : );
-  // asm volatile("mov %%eax, %%dr0" : );
-  return 0;    // Non-zero return means that the module couldn't be loaded.
+int main() {
+  int i = 77;
+  i = 33;
+  i += 55;
+  printf("%i\n", i);
+  return i;
 }
-
-static void __exit hello_cleanup(void)
-{
-    printk(KERN_INFO "Cleaning up module.\n");
-}
-
-module_init(hello_init);
-module_exit(hello_cleanup);

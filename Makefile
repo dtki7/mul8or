@@ -1,5 +1,5 @@
 # copied from http://stackoverflow.com/questions/1484817/how-do-i-make-a-simple-makefile-gcc-unix
-TARGET = emulator
+TARGET = collect_data emulate_file
 ADDITIONAL = template
 LIBS =
 CC = g++
@@ -16,8 +16,14 @@ HEADERS = $(wildcard *.h)
 %.o: %.cpp $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(TARGET): $(OBJECTS)
-	$(CC) $(OBJECTS) -Wall -m32 $(LIBS) -o $@
+collect_data: $(OBJECTS)
+	$(CC) $(filter-out emulate_file.o,$(OBJECTS)) -Wall -m32 $(LIBS) -o $@
+
+emulate_file: $(OBJECTS)
+	$(CC) $(filter-out collect_data.o,$(OBJECTS)) -Wall -m32 $(LIBS) -o $@
+
+# $(TARGET): $(OBJECTS)
+# 	$(CC) $(OBJECTS) -Wall -m32 $(LIBS) -o $@
 
 %: %.c
 	$(CC) $(CFLAGS) $< -o $@

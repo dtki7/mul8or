@@ -2,6 +2,7 @@
 
 #include <map>
 #include <vector>
+#include <fstream>
 
 #define ST_SPACE_COUNT 20
 #define ST_SPACE2_COUNT 32
@@ -20,12 +21,14 @@ using namespace std;
 class register_x86 {
 
 public:
+  register_x86();
   register_x86(user_regs_struct user_regs, user_fpregs_struct user_fpregs,
                user_fpxregs_struct user_fpxregs);
-  void print_all();
+  void dump(ofstream& file);
+  void load(ifstream& file);
   static void diff_same(vector<register_x86> regs);
   static void diff_change(vector<register_x86> regs, bool all);
   static string get_user_reg_name(enum user_reg_names_x86 name);
 protected:
-  map<string, unsigned long int> regs;
+  map<string, unsigned long> regs;
 };

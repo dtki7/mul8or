@@ -100,3 +100,6 @@ unsigned char instr[] = {
   0xc5, 0xfe, 0x6f, 0x4d, 0xe0       	// vmovdqu -0x20(%ebp),%ymm1
 
 };
+
+// cout << boost::format("0x%016x:") % __builtin_bswap64(*(uint64_t*)instr)
+//      << endl;

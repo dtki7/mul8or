@@ -13,17 +13,18 @@ using namespace std;
 class cpu_x86_32 {
 
 public:
-  cpu_x86_32(uint8_t instr[], int len, bool log = false);
+  cpu_x86_32(uint8_t instr[] = { 0x0 }, int len = 0, bool log = false);
   ~cpu_x86_32();
   bool execute();
-  bool save();
+  bool dump();
+  bool load(uint8_t* instr, int len);
   void print();
 protected:
   uint8_t* instr;
   int len;
   bool log;
-
   int pid;
+
   vector<register_x86> regs;
   vector<map<uint32_t, uint8_t>> ram;
 
@@ -34,4 +35,6 @@ protected:
   bool read_regs();
   bool read_ram();
   void diff_ram();
+
+  string get_instr();
 };

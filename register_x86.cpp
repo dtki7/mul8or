@@ -5,6 +5,8 @@
 
 using namespace std;
 
+register_x86::register_x86() {}
+
 register_x86::register_x86(user_regs_struct user_regs, user_fpregs_struct user_fpregs,
              user_fpxregs_struct user_fpxregs) {
   this->regs.insert(make_pair("EBX", user_regs.ebx));
@@ -64,13 +66,30 @@ register_x86::register_x86(user_regs_struct user_regs, user_fpregs_struct user_f
   }
 }
 
+void register_x86::dump(ofstream& file) {
+  file << "#" << endl;
+  for(pair<string, unsigned long> reg: regs) {
+    file << reg.first << ":" << reg.second << endl;
+  }
+}
+
+void register_x86::load(ifstream& file) {
+  string line;
+  unsigned long val;
+  while(getline(file, line, ':')) {
+    if(line == "#" || line == "##") break;
+    file >> val;
+    regs.insert(make_pair(line, val));
+  }
+}
+
 void register_x86::diff_same(vector<register_x86> regs) {
   cout << hex;
   for(unsigned int i = 0; i < regs.size(); i++) {
-    map<string, unsigned long int> reg = regs.at(i).regs;
+    map<string, unsigned long> reg = regs.at(i).regs;
     cout << "Following registers got the same value (Set " << i << "):" << endl;
-    for(pair<string, unsigned long int> pair1: reg) {
-      for(pair<string, unsigned long int> pair2: reg) {
+    for(pair<string, unsigned long> pair1: reg) {
+      for(pair<string, unsigned long> pair2: reg) {
           if(pair1.first.compare(pair2.first) < 0
               && pair1.second == pair2.second) {
                 cout << pair1.first << " == " << pair2.first << " == "
@@ -83,14 +102,14 @@ void register_x86::diff_same(vector<register_x86> regs) {
 
 void register_x86::diff_change(vector<register_x86> regs, bool all) {
   cout << "Following registers changed:" << endl;
-  map<string, unsigned long int> reg = regs.at(0).regs;
-  for(pair<string, unsigned long int> pair: reg) {
+  map<string, unsigned long> reg = regs.at(0).regs;
+  for(pair<string, unsigned long> pair: reg) {
     bool check = all;
     stringstream ss;
     ss << pair.first << ":\t" << boost::format("0x%08x") % pair.second
        << "\t";
     for(unsigned int i = 1; i < regs.size(); i++) {
-      unsigned long int val = regs.at(i).regs[pair.first];
+      unsigned long val = regs.at(i).regs[pair.first];
       if(check || pair.second != val) {
         check = true;
         ss << to_string(i) << "->\t" << boost::format("0x%08x") % val << "\t";
