@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <regex>
 #include <boost/format.hpp>
 
 #include "cpu_x86_32.h"
@@ -48,15 +49,18 @@ bool cpu_x86_32::execute() {
       case 0: brace = BRACE_OPEN; break;
       case 1: brace = BRACE_CLOSE; break;
     }
+    uint32_t eip_tmp = 0;
     while(true) {
       uint32_t eip = user_reg(PTRACE_PEEKUSER, EIP, 0);
       if(eip == brace) {
         break;
+      } else if(brace == BRACE_CLOSE && (eip > BRACE_CLOSE || eip < eip_tmp)) {
+        break;
       } else if(eip == 0) {
         return false;
-      } else if(wstatus >> 8 == SIGSEGV) {
-        cout << hex << "Catched Segmentation Fault in address "
-             << eip << "!" << endl;
+      } else if(wstatus >> 8 != SIGTRAP) {
+        cout << hex << "Terminated with Signal Code 0x" << (wstatus >> 8)
+             << " in address 0x" << eip << "!" << endl;
         len = eip - BRACE_OPEN;
         if(len <= 0) {
           cerr << "ERROR: Length of instruction is 0!" << endl;
@@ -73,6 +77,7 @@ bool cpu_x86_32::execute() {
       }
       ptrace(PTRACE_SINGLESTEP, pid, nullptr, nullptr);
       waitpid(pid, &wstatus, 0);
+      eip_tmp = eip;
     }
     if(!(read_regs() && read_ram())) {
       cerr << "ERROR: Failed to read memory of process " << pid << "!"<< endl;
@@ -83,7 +88,7 @@ bool cpu_x86_32::execute() {
   return true;
 }
 
-bool cpu_x86_32::dump() {
+bool cpu_x86_32::dump_change() {
   string path = "data/" + get_instr();
 
   struct stat buf;
@@ -98,47 +103,165 @@ bool cpu_x86_32::dump() {
     cerr << "ERROR: Failed to create file data/" << path << "!" << endl;
     return false;
   }
+
+  file << register_x86::diff_change(regs, false) << endl;
+  file << diff_ram() << endl;
+
+  file.close();
+  return true;
+}
+
+bool cpu_x86_32::dump_full(string prefix) {
+  string path = "data/" + prefix + get_instr();
+
+  struct stat buf;
+  if (stat(path.c_str(), &buf) != -1)
+  {
+    cout << "Data alread exist!" << endl;
+    return false;
+  }
+
+  ofstream file(path, ios::out);
+  if(!file.is_open()) {
+    cerr << "ERROR: Failed to create file data/" << path << "!" << endl;
+    return false;
+  }
+
   for(register_x86 reg: regs) {
-    reg.dump(file);
+    reg.dump_full(file);
   }
   for(map<uint32_t, uint8_t> mp: ram) {
     file << "##" << endl;
     for(pair<uint32_t, uint8_t> par: mp) {
-      file << par.first << ":" << par.second << endl;
+      file << par.first << ":" << (uint32_t)par.second << endl;
     }
+    file << endl;
   }
+
+  file.close();
   return true;
 }
 
-bool cpu_x86_32::load(uint8_t* instr, int len) {
+bool cpu_x86_32::load_change(uint8_t* instr, int len) {
   this->instr = instr;
   this->len = len;
 
   string path = "data/" + get_instr();
-  struct stat buf;
-  if (stat(path.c_str(), &buf) == -1)
-  {
-    if(log) {
-      cout << "Data " << path << " does not exist!" << endl;
-    }
+  if(!data_exist(path)) {
     return false;
   }
 
   string line;
   ifstream file(path, ios::in);
-  while(getline(file, line, ':')) {
-    if(line == "#") {
-      register_x86 reg;
-      regs.push_back(reg);
-      regs.back().load(file);
+
+  regex rx_reg("(.+):\t0x([0-9a-f]{8})\t[0-9]+->\t0x([0-9a-f]{8})");
+  register_x86 new_reg = regs.back();
+  while(getline(file, line)) {
+    if(line == "") break;
+
+    string reg_name;
+    vector<unsigned long> vals;
+
+    smatch sm;
+    if(!regex_search(line, sm, rx_reg)) {
+      cerr << "ERROR: regex_search returned false!";
+      return false;
     }
+
+    reg_name = sm[1];
+    for(unsigned int i = 2; i < sm.size(); i++) {
+      vals.push_back(strtoul(string(sm[i]).c_str(), nullptr, 16));
+    }
+
+    new_reg.regs[reg_name] += vals.back() - vals.front();
   }
+
+  regex rx_ram("0x([0-9a-f]+):\t0x([0-9a-f]{2})\t[0-9]+->\t0x([0-9a-f]{2})");
+  map<uint32_t, uint8_t> new_ram;
+  new_ram.insert(ram.back().begin(), ram.back().end());
+  while(getline(file, line)) {
+    if(line == "") break;
+
+    uint32_t address;
+    vector<uint8_t> vals;
+
+    smatch sm;
+    if(!regex_search(line, sm, rx_ram)) {
+      cerr << "ERROR: regex_search returned false!";
+      return false;
+    }
+
+    address = strtoul(string(sm[1]).c_str(), nullptr, 16);
+    for(unsigned int i = 2; i < sm.size(); i++) {
+      vals.push_back(strtoul(string(sm[i]).c_str(), nullptr, 16));
+    }
+
+    new_ram[address] += vals.back() - vals.front();
+  }
+
+  regs.push_back(new_reg);
+  ram.push_back(new_ram);
+
+  file.close();
   return true;
 }
 
+bool cpu_x86_32::load_full(uint8_t* instr, int len) {
+  this->instr = instr;
+  this->len = len;
+
+  string prefix = "";
+  if(instr == nullptr && len == 0) {
+    prefix = "blank";
+  }
+
+  string path = "data/" + prefix + get_instr();
+  if(!data_exist(path)) {
+    return false;
+  }
+
+  string line;
+  ifstream file(path, ios::in);
+  while(getline(file, line)) {
+    if(line == "#") {
+      register_x86 new_reg;
+      new_reg.load_full(file);
+      regs.push_back(new_reg);
+    }
+    if(line == "##") {
+      map<uint32_t, uint8_t> new_ram;
+      regex regx("([0-9]+?):(.)");
+      while(getline(file, line)) {
+        if(line == "") break;
+        smatch sm;
+        regex_search(line, sm, regx);
+        new_ram.insert(make_pair(strtoul(string(sm[1]).c_str(), nullptr, 10),
+                                 strtoul(string(sm[2]).c_str(), nullptr, 10)));
+      }
+      ram.push_back(new_ram);
+    }
+  }
+
+  file.close();
+  return true;
+}
+
+bool cpu_x86_32::dump_blank() {
+  uint8_t instr[1] = { 0x0 };
+  cpu_x86_32 cpu(instr, sizeof(instr));
+  cpu.execute();
+  return cpu.dump_full("blank");
+}
+
+bool cpu_x86_32::load_blank() {
+  return load_full(nullptr, 0);
+}
+
 void cpu_x86_32::print() {
+  cout << "Instruction: " << get_instr() << endl;
   register_x86::diff_change(regs, false);
   diff_ram();
+  cout << "Finished!" << endl;
 }
 
 uint32_t cpu_x86_32::user_reg(enum __ptrace_request mode,
@@ -271,8 +394,9 @@ bool cpu_x86_32::read_ram() {
   return true;
 }
 
-void cpu_x86_32::diff_ram() {
+string cpu_x86_32::diff_ram() {
   cout << "Following ram address values changed:" << endl;
+  stringstream full_ss;
   map<uint32_t, uint8_t> reg = ram.at(0);
   for(pair<uint32_t, uint8_t> pair: reg) {
     bool check = false;
@@ -288,8 +412,10 @@ void cpu_x86_32::diff_ram() {
     }
     if(check) {
       cout << ss.str() << endl;
+      full_ss << ss.str() << endl;
     }
   }
+  return full_ss.str();
 }
 
 string cpu_x86_32::get_instr() {
@@ -298,4 +424,14 @@ string cpu_x86_32::get_instr() {
     ss << boost::format("%02x") % (uint32_t)instr[i];
   }
   return ss.str();
+}
+
+bool cpu_x86_32::data_exist(string path) {
+  struct stat buf;
+  if (stat(path.c_str(), &buf) == -1)
+  {
+    cout << "Data " << path << " does not exist!" << endl;
+    return false;
+  }
+  return true;
 }

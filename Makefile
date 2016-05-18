@@ -2,7 +2,7 @@
 TARGET = collect_data emulate_file
 ADDITIONAL = template
 LIBS =
-CC = g++
+CC = g++-4.9  # because of regex
 CFLAGS = -g -Wall -m32 -std=c++11
 
 .PHONY: default all clean

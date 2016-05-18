@@ -4,15 +4,20 @@
 #include "cpu_x86_32.h"
 
 int main(int argc, const char* argv[]) {
+  if(!cpu_x86_32::data_exist("data/blank")) {
+    cpu_x86_32::dump_blank();
+  }
+
   ifstream exe(argv[1], ios::in | ios::binary);
   exe.seekg(0x41d);
 
   int i = 0;
-  uint8_t buf[7] = { 0x0 };
+  uint8_t buf[7] = { 0x06 };
   cpu_x86_32 cpu;
+  cpu.load_blank();
   while(true) {
     exe.read((char*)buf + i++, 1);
-    if(cpu.load(buf, i) || i > 6) {
+    if(cpu.load_change(buf, i) || i > 6) {
       i = 0;
       cpu.print();
       cin.get();

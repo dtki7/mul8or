@@ -5,7 +5,7 @@
 #include <fstream>
 
 #define ST_SPACE_COUNT 20
-#define ST_SPACE2_COUNT 32
+#define ST2_SPACE_COUNT 32
 #define XMM_SPACE_COUNT 32
 #define PADDING_COUNT 56
 #define U_COMM_COUNT 32
@@ -24,11 +24,12 @@ public:
   register_x86();
   register_x86(user_regs_struct user_regs, user_fpregs_struct user_fpregs,
                user_fpxregs_struct user_fpxregs);
-  void dump(ofstream& file);
-  void load(ifstream& file);
+  register_x86(const register_x86& obj);
+  void dump_full(ofstream& file);
+  void load_full(ifstream& file);
   static void diff_same(vector<register_x86> regs);
-  static void diff_change(vector<register_x86> regs, bool all);
+  static string diff_change(vector<register_x86> regs, bool all);
   static string get_user_reg_name(enum user_reg_names_x86 name);
-protected:
-  map<string, unsigned long> regs;
+
+  map<string, unsigned long> regs;  // better map with vector
 };

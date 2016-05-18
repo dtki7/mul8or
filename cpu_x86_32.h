@@ -16,9 +16,18 @@ public:
   cpu_x86_32(uint8_t instr[] = { 0x0 }, int len = 0, bool log = false);
   ~cpu_x86_32();
   bool execute();
-  bool dump();
-  bool load(uint8_t* instr, int len);
+
+  bool dump_change();
+  bool dump_full(string prefix = "");
+  bool load_change(uint8_t* instr, int len);
+  bool load_full(uint8_t* instr, int len);
+
+  static bool dump_blank();
+  bool load_blank();
+
   void print();
+
+  static bool data_exist(string path);
 protected:
   uint8_t* instr;
   int len;
@@ -34,7 +43,7 @@ protected:
   bool build_exe();
   bool read_regs();
   bool read_ram();
-  void diff_ram();
+  string diff_ram();
 
   string get_instr();
 };

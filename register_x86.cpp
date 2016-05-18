@@ -1,4 +1,5 @@
 #include <sstream>
+#include <regex>
 #include <boost/format.hpp>
 
 #include "register_x86.h"
@@ -50,7 +51,7 @@ register_x86::register_x86(user_regs_struct user_regs, user_fpregs_struct user_f
   this->regs.insert(make_pair("MXCSR", user_fpxregs.mxcsr));
   this->regs.insert(make_pair("RESERVED", user_fpxregs.reserved));
   long int* st_space2 = user_fpxregs.st_space;
-  for(int i = 0; i < ST_SPACE_COUNT; i++) {
+  for(int i = 0; i < ST2_SPACE_COUNT; i++) {
     this->regs.insert(make_pair("ST2_" + str(boost::format("%02i") % i),
                                 st_space2[i]));
   }
@@ -66,20 +67,26 @@ register_x86::register_x86(user_regs_struct user_regs, user_fpregs_struct user_f
   }
 }
 
-void register_x86::dump(ofstream& file) {
+register_x86::register_x86(const register_x86& obj) {
+  regs.insert(obj.regs.begin(), obj.regs.end());
+}
+
+void register_x86::dump_full(ofstream& file) {
   file << "#" << endl;
   for(pair<string, unsigned long> reg: regs) {
     file << reg.first << ":" << reg.second << endl;
   }
+  file << endl;
 }
 
-void register_x86::load(ifstream& file) {
+void register_x86::load_full(ifstream& file) {
   string line;
-  unsigned long val;
-  while(getline(file, line, ':')) {
-    if(line == "#" || line == "##") break;
-    file >> val;
-    regs.insert(make_pair(line, val));
+  regex regx("([A-Z0-9_]+?):([0-9]+)");
+  while(getline(file, line)) {
+    if(line == "") break;
+    smatch sm;
+    regex_search(line, sm, regx);
+    regs.insert(make_pair(sm[1], strtoul(string(sm[2]).c_str(), nullptr, 10)));
   }
 }
 
@@ -100,8 +107,9 @@ void register_x86::diff_same(vector<register_x86> regs) {
   }
 }
 
-void register_x86::diff_change(vector<register_x86> regs, bool all) {
+string register_x86::diff_change(vector<register_x86> regs, bool all) {
   cout << "Following registers changed:" << endl;
+  stringstream full_ss;
   map<string, unsigned long> reg = regs.at(0).regs;
   for(pair<string, unsigned long> pair: reg) {
     bool check = all;
@@ -117,8 +125,10 @@ void register_x86::diff_change(vector<register_x86> regs, bool all) {
     }
     if(check) {
       cout << ss.str() << endl;
+      full_ss << ss.str() << endl;
     }
   }
+  return full_ss.str();
 }
 
 string register_x86::get_user_reg_name(enum user_reg_names_x86 name) {
