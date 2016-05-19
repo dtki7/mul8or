@@ -1,6 +1,6 @@
 # copied from http://stackoverflow.com/questions/1484817/how-do-i-make-a-simple-makefile-gcc-unix
 TARGET = collect_data emulate_file
-ADDITIONAL = template
+ADDITIONAL = template test/test
 LIBS =
 CC = g++-4.9  # because of regex
 CFLAGS = -g -Wall -m32 -std=c++11

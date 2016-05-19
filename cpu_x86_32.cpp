@@ -159,14 +159,14 @@ bool cpu_x86_32::load_change(uint8_t* instr, int len) {
   while(getline(file, line)) {
     if(line == "") break;
 
-    string reg_name;
-    vector<unsigned long> vals;
-
     smatch sm;
     if(!regex_search(line, sm, rx_reg)) {
       cerr << "ERROR: regex_search returned false!";
       return false;
     }
+
+    string reg_name;
+    vector<unsigned long> vals;
 
     reg_name = sm[1];
     for(unsigned int i = 2; i < sm.size(); i++) {
@@ -175,6 +175,7 @@ bool cpu_x86_32::load_change(uint8_t* instr, int len) {
 
     new_reg.regs[reg_name] += vals.back() - vals.front();
   }
+  regs.push_back(new_reg);
 
   regex rx_ram("0x([0-9a-f]+):\t0x([0-9a-f]{2})\t[0-9]+->\t0x([0-9a-f]{2})");
   map<uint32_t, uint8_t> new_ram;
@@ -182,24 +183,22 @@ bool cpu_x86_32::load_change(uint8_t* instr, int len) {
   while(getline(file, line)) {
     if(line == "") break;
 
-    uint32_t address;
-    vector<uint8_t> vals;
-
     smatch sm;
     if(!regex_search(line, sm, rx_ram)) {
       cerr << "ERROR: regex_search returned false!";
       return false;
     }
 
-    address = strtoul(string(sm[1]).c_str(), nullptr, 16);
+    // uint32_t address;
+    vector<uint8_t> vals;
+
+    // address = strtoul(string(sm[1]).c_str(), nullptr, 16);
     for(unsigned int i = 2; i < sm.size(); i++) {
       vals.push_back(strtoul(string(sm[i]).c_str(), nullptr, 16));
     }
 
-    new_ram[address] += vals.back() - vals.front();
+    new_ram[regs.back().regs["ESP"]] += vals.back() - vals.front();
   }
-
-  regs.push_back(new_reg);
   ram.push_back(new_ram);
 
   file.close();
@@ -405,7 +404,7 @@ string cpu_x86_32::diff_ram() {
        << boost::format("0x%02x") % (int)pair.second << "\t";
     for(unsigned int i = 1; i < regs.size(); i++) {
       uint8_t val = ram.at(i)[pair.first];
-      if(check || pair.second != val) {
+      if(ram.at(i-1)[pair.first] != val) {
         check = true;
         ss << to_string(i) << "->\t" << boost::format("0x%02x") % (int)val << "\t";
       }

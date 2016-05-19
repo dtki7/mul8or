@@ -118,7 +118,7 @@ string register_x86::diff_change(vector<register_x86> regs, bool all) {
        << "\t";
     for(unsigned int i = 1; i < regs.size(); i++) {
       unsigned long val = regs.at(i).regs[pair.first];
-      if(check || pair.second != val) {
+      if(regs.at(i-1).regs[pair.first] != val) {
         check = true;
         ss << to_string(i) << "->\t" << boost::format("0x%08x") % val << "\t";
       }

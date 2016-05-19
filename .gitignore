@@ -30,6 +30,7 @@ emulate_file
 collect_data
 execute
 template
+test/test
 
 # Data folder
 data/
