@@ -1,9 +1,9 @@
 #include <stdio.h>
 
 int main() {
-  int i = 77;
-  i = 33;
-  i += 55;
+  int i = 0x77;
+  i = 0x33;
+  i += 0x55;
   printf("%i\n", i);
   return i;
 }

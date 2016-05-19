@@ -180,6 +180,7 @@ bool cpu_x86_32::load_change(uint8_t* instr, int len) {
   regex rx_ram("0x([0-9a-f]+):\t0x([0-9a-f]{2})\t[0-9]+->\t0x([0-9a-f]{2})");
   map<uint32_t, uint8_t> new_ram;
   new_ram.insert(ram.back().begin(), ram.back().end());
+  int counter = 0;
   while(getline(file, line)) {
     if(line == "") break;
 
@@ -197,7 +198,8 @@ bool cpu_x86_32::load_change(uint8_t* instr, int len) {
       vals.push_back(strtoul(string(sm[i]).c_str(), nullptr, 16));
     }
 
-    new_ram[regs.back().regs["ESP"]] += vals.back() - vals.front();
+    new_ram[regs.back().regs["ESP"]+counter] += vals.back() - vals.front();
+    counter++;
   }
   ram.push_back(new_ram);
 
@@ -406,7 +408,8 @@ string cpu_x86_32::diff_ram() {
       uint8_t val = ram.at(i)[pair.first];
       if(ram.at(i-1)[pair.first] != val) {
         check = true;
-        ss << to_string(i) << "->\t" << boost::format("0x%02x") % (int)val << "\t";
+        ss << to_string(i) << "->\t" << boost::format("0x%02x") % (int)val
+           << "\t";
       }
     }
     if(check) {

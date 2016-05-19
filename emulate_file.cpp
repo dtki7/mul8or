@@ -9,7 +9,7 @@ int main(int argc, const char* argv[]) {
   }
 
   ifstream exe(argv[1], ios::in | ios::binary);
-  exe.seekg(0x41d);
+  exe.seekg(0x429);
 
   int i = 0;
   uint8_t buf[7] = { 0x06 };
@@ -17,6 +17,9 @@ int main(int argc, const char* argv[]) {
   cpu.load_blank();
   while(true) {
     exe.read((char*)buf + i++, 1);
+    if(exe.tellg() > 0x444) {
+      return 0;
+    }
     if(cpu.load_change(buf, i) || i > 6) {
       i = 0;
       cpu.print();

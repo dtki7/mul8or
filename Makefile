@@ -22,9 +22,6 @@ collect_data: $(OBJECTS)
 emulate_file: $(OBJECTS)
 	$(CC) $(filter-out collect_data.o,$(OBJECTS)) -Wall -m32 $(LIBS) -o $@
 
-# $(TARGET): $(OBJECTS)
-# 	$(CC) $(OBJECTS) -Wall -m32 $(LIBS) -o $@
-
 %: %.c
 	$(CC) $(CFLAGS) $< -o $@
 
