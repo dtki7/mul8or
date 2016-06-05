@@ -12,7 +12,7 @@ int main(int argc, const char* argv[]) {
   }
 
   uint8_t instr[8] = {0x00};
-  for(uint64_t i = 0xf475ff; i <= ~(uint64_t)0; i++) {
+  for(uint64_t i = 0xfffffffff; i <= ~(uint64_t)0; i++) {
     *(uint64_t*)instr = i;
     for(uint32_t j = 0; j < sizeof(instr); j++) {
       cout << boost::format("0x%02x") % (uint32_t)instr[j] << " ";

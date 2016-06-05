@@ -31,5 +31,5 @@ public:
   static string diff_change(vector<register_x86> regs, bool all);
   static string get_user_reg_name(enum user_reg_names_x86 name);
 
-  map<string, unsigned long> regs;  // better map with vector
+  map<string, unsigned long> regs;
 };

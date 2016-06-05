@@ -1,6 +1,6 @@
 # mul8or
 Selfgenerating Emulator
 
-BA Disertation
+BA Dissertation
 
-Description in file "Erstellung eines selbstgenerierenden Emulators"
+Description in file "Erstellung eines selbstgenerierenden Emulators" (only german)
