@@ -166,14 +166,13 @@ bool cpu_x86_32::load_change(uint8_t* instr, int len) {
     }
 
     string reg_name;
-    vector<unsigned long> vals;
+    unsigned long vals[2];
 
     reg_name = sm[1];
-    for(unsigned int i = 2; i < sm.size(); i++) {
-      vals.push_back(strtoul(string(sm[i]).c_str(), nullptr, 16));
-    }
+    vals[0] = strtoul(string(sm[2]).c_str(), nullptr, 16);
+    vals[1] = strtoul(string(sm[3]).c_str(), nullptr, 16);
 
-    new_reg.regs[reg_name] += vals.back() - vals.front();
+    new_reg.regs[reg_name] += vals[1]- vals[0];
   }
   regs.push_back(new_reg);
 
@@ -191,14 +190,13 @@ bool cpu_x86_32::load_change(uint8_t* instr, int len) {
     }
 
     // uint32_t address;
-    vector<uint8_t> vals;
+    unsigned long vals[2];
 
     // address = strtoul(string(sm[1]).c_str(), nullptr, 16);
-    for(unsigned int i = 2; i < sm.size(); i++) {
-      vals.push_back(strtoul(string(sm[i]).c_str(), nullptr, 16));
-    }
+    vals[0] = strtoul(string(sm[2]).c_str(), nullptr, 16);
+    vals[1] = strtoul(string(sm[3]).c_str(), nullptr, 16);
 
-    new_ram[regs.back().regs["ESP"]+counter] += vals.back() - vals.front();
+    new_ram[regs.back().regs["ESP"]+counter] += vals[1] - vals[0];
     counter++;
   }
   ram.push_back(new_ram);
@@ -263,6 +261,16 @@ void cpu_x86_32::print() {
   register_x86::diff_change(regs, false);
   diff_ram();
   cout << "Finished!" << endl;
+}
+
+bool cpu_x86_32::data_exist(string path) {
+  struct stat buf;
+  if (stat(path.c_str(), &buf) == -1)
+  {
+    cout << "Data " << path << " does not exist!" << endl;
+    return false;
+  }
+  return true;
 }
 
 uint32_t cpu_x86_32::user_reg(enum __ptrace_request mode,
@@ -426,14 +434,4 @@ string cpu_x86_32::get_instr() {
     ss << boost::format("%02x") % (uint32_t)instr[i];
   }
   return ss.str();
-}
-
-bool cpu_x86_32::data_exist(string path) {
-  struct stat buf;
-  if (stat(path.c_str(), &buf) == -1)
-  {
-    cout << "Data " << path << " does not exist!" << endl;
-    return false;
-  }
-  return true;
 }
