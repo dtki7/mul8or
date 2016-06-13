@@ -1,7 +1,9 @@
-#include "cpu_x86_32.h"
+#include <string.h>
 
 #include <iostream>
 #include <boost/format.hpp>
+
+#include "cpu_x86_32.h"
 
 using namespace std;
 
@@ -11,7 +13,8 @@ int main(int argc, const char* argv[]) {
   if(argc > 1 && string(argv[1]) == "-l") {
     log = true;
   } else if(argc > 1) {
-    start = stoul(argv[1], nullptr, 16);
+    start = __builtin_bswap64(stoull(argv[1], nullptr, 16))
+            >> ((16 - strlen(argv[1])) * 4);
   }
 
   uint8_t instr[8] = {0x00};

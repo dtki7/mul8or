@@ -12,7 +12,7 @@ int main(int argc, const char* argv[]) {
   exe.seekg(0x429);
 
   int i = 0;
-  uint8_t buf[7] = { 0x06 };
+  uint8_t buf[8] = { 0x06 };
   cpu_x86_32 cpu;
   cpu.load_blank();
   while(true) {
@@ -20,7 +20,7 @@ int main(int argc, const char* argv[]) {
     if(exe.tellg() > 0x463) {
       return 0;
     }
-    if(cpu.load_change(buf, i) || i > 14) {
+    if(cpu.load_change(buf, i) || i > 7) {
       i = 0;
       cpu.print();
       cin.get();
